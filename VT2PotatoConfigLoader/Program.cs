@@ -1,15 +1,24 @@
-﻿using VT2PotatoConfigLoader.Services;
+﻿using UmgakConfig.Services;
 
-namespace VT2PotatoConfigLoader
+namespace UmgakConfig
 {
     internal class Program
     {
-        public static void Main(string[] args)
+        public static void Main()
         {
             // Find FatShark folder with user config
             DiskUtils.FindFolder();
 
-            CommandHelper.Run();            
+            DiskUtils.MakeFileNormal(DiskUtils.ConfigPath);
+
+            // Backup user file ("Better to be safe than sorry")
+            DiskUtils.CopyFile(DiskUtils.ConfigPath, "Backups/user_settings.config");
+
+            // Apply settings to config
+            ConfigManager.SetOptimizedSettings();
+
+            // Prevent settings from being change by launcher
+            DiskUtils.MakeFileReadOnly(DiskUtils.ConfigPath);
         }
     }
 }

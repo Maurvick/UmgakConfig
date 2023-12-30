@@ -1,47 +1,93 @@
-﻿using System.Text;
-
-namespace VT2PotatoConfigLoader.Services
+﻿namespace UmgakConfig.Services
 {
     internal class DiskUtils
     {
-        private static readonly List<string> _data = new List<string>();
+        private static readonly List<string> _tempList = [];
 
-        const string USER_FILE_NAME = "settings.txt";
+        private const string APP_SETTINGS = "app_settings.txt";
+        private const string CONFIG_FILE = "config.txt";
+        private const string PRESETS_DIR = "Presets";
+        private const string BACKUP_DIR = "Backups";
 
+        private static string _path;
+
+        public static string ConfigPath
+        {
+            get { return _path; }
+        }
+
+        /// <summary>
+        /// Create folder structure to organize settings files.
+        /// </summary>
+        private static void EnsureCreated() 
+        {
+            if (!Directory.Exists(PRESETS_DIR))
+            {
+                Directory.CreateDirectory(PRESETS_DIR);
+            }
+            if (!Directory.Exists(BACKUP_DIR))
+            {
+                Directory.CreateDirectory(BACKUP_DIR);
+            }
+        }
+        
         public static void FindFolder()
         {
-            string[] file = GetDataFromFile(USER_FILE_NAME);
+            string[] file = GetDataFromFile(APP_SETTINGS);
 
-            if (File.Exists(USER_FILE_NAME))
+            EnsureCreated();
+
+            // Check if file is not empty
+            if (file.Length > 0)
             {
                 foreach (var line in file)
                 {
-                    if (line.Contains("Path:"))
+                    if (line.Contains("user_settings.config"))
                     {
-
+                        _tempList.Add(line);
                     }
                 }
 
-                Console.WriteLine("FatShark config folder found.");
+                // Set Path 
+                _path = _tempList.First();
+
+                Console.WriteLine($"FatShark config folder found.");
             }
             else
             {
-                SavePath();
+                // Create file with path
+                SaveFile();
             }
+        }
+
+        public static void SaveFile()
+        {
+            Console.Write("Write path to FatShark folder: ");
+            string path = Console.ReadLine() ?? "";
+
+            // Add path to list 
+            _tempList.Add(path);
+
+            File.CreateText(APP_SETTINGS).Close();
+            File.WriteAllText(APP_SETTINGS, path);
         }
 
         public static void CopyFile(string source, string destination)
         {
+            if (source == destination)
+            {
+                throw new Exception("Source path and destination path are same!");
+            }
+
             if (File.Exists(destination))
             {
                 Console.WriteLine("File is already copied. Skipping this step.");
-
                 return;
             }
+
             try
             {
                 File.Copy(source, destination);
-
                 Console.WriteLine($"Copied file to: {destination}");
             }
             catch (Exception ex)
@@ -50,133 +96,6 @@ namespace VT2PotatoConfigLoader.Services
             }
         }
 
-        public static void SavePath()
-        {
-            Console.Write("Write path to FatShark folder: ");
-            string path = Console.ReadLine() ?? ""; 
-
-            File.Create(USER_FILE_NAME);
-            File.WriteAllLines(path, _data);
-        }
-
-        public static string ReadFolderPath()
-        {
-            string[] lines = GetDataFromFile(USER_FILE_NAME);
-            string data = lines[0];
-
-            return data;
-        }
-
-        public static string[] FindFileByPath(string path)
-        {
-            string[] file = File.ReadAllLines(path);
-
-            return file;
-        }
-
-        public static string GetDisksName()
-        {
-            DriveInfo[] allDrives = DriveInfo.GetDrives();
-
-            string[] result = new string[allDrives.Length];
-
-            foreach (DriveInfo driveInfo in allDrives)
-            {
-                for (int i = 0; i < allDrives.Length; i++)
-                {
-                    result[i] += driveInfo.Name;
-                } 
-            }
-
-            return result[0];
-        }
-
-        public static void CheckFile(string file)
-        {
-            string fileName = "user_settings.config"; // Replace with the name of the file you're searching for
-
-            foreach (DriveInfo drive in DriveInfo.GetDrives())
-            {
-                if (drive.IsReady)
-                {
-                    string rootDirectory = drive.RootDirectory.FullName;
-                    string filePath = SearchFile(rootDirectory, fileName);
-
-                    if (filePath != null)
-                    {
-                        Console.WriteLine("File found: " + filePath);
-                        break;
-                    }
-                    else
-                    {
-                        Console.WriteLine("File NOT found.");
-                    }
-                }
-            }
-        }
-
-        public static string SearchFile(string directory, string fileName)
-        {
-            try
-            {
-                // Go through files in entered directory
-                foreach (string file in Directory.GetFiles(directory, fileName, SearchOption.AllDirectories))
-                {
-                    return file; // Return the first match found
-                }
-
-                foreach (string subDirectory in Directory.GetDirectories(directory))
-                {
-                    string? filePath = SearchFile(subDirectory, fileName);
-
-                    // Return the first match found in subdirectories
-                    if (filePath != null) return filePath; 
-                }
-            }
-            catch (UnauthorizedAccessException)
-            {
-                Console.WriteLine("Unauthorized access to directories. Failed to read files in folder.");
-            }
-
-            return string.Empty; // File not found
-        }
-
-        public static void EditLine(string[] data, string lineToRead, 
-            string lineToChange, string newLine, string path)
-        {
-            StringBuilder newFile = new();
-
-            // Read file lines
-            foreach (string line in data)
-            {
-                if (line.Contains(lineToRead))
-                {
-                    // Copy file
-                    newFile.Append(line + Environment.NewLine);
-                }
-                else
-                {
-                    if (line.Contains(lineToChange))
-                    {
-                        string temp = line.Replace(lineToChange, newLine);
-
-                        newFile.Append(temp + "\r\n");
-
-                        continue;
-                    }
-
-                    newFile.Append(line + "\r\n");
-                }
-            }
-
-            File.WriteAllText(path, newFile.ToString());
-        }
-
-        /// <summary>
-        /// Returns array with all file data.
-        /// </summary>
-        /// <param name="path"></param>
-        /// <returns></returns>
         public static string[] GetDataFromFile(string path)
         {
             try
@@ -185,12 +104,66 @@ namespace VT2PotatoConfigLoader.Services
 
                 return file;
             }
-            catch (IOException ex)
+            catch (IOException)
             {
-                Console.WriteLine(ex.Message);
+                Console.WriteLine($"Failed to read file: {path}");
 
-                return null;
+                SaveFile();
+
+                return [];
             }
+        }
+
+        public static void MakeFileReadOnly(string filePath)
+        {
+            try
+            {
+                // Check if the file exists
+                if (File.Exists(filePath))
+                {
+                    // Make the file readonly
+                    File.SetAttributes(filePath, File.GetAttributes(filePath) | FileAttributes.ReadOnly);
+
+                    Console.WriteLine("File is now readonly.");
+                }
+                else
+                {
+                    Console.WriteLine("File does not exist.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An error occurred: {ex.Message}");
+            }
+        }
+
+        public static void MakeFileNormal(string filePath)
+        {
+            try
+            {
+                // Check if the file exists
+                if (File.Exists(filePath))
+                {
+                    // Remove the read-only attribute
+                    File.SetAttributes(filePath, File.GetAttributes(filePath) & ~FileAttributes.ReadOnly);
+
+                    Console.WriteLine("File is now editible.");
+                }
+                else
+                {
+                    Console.WriteLine("File does not exist.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An error occurred: {ex.Message}");
+            }
+        }
+
+        public static void RestoreSettings()
+        {
+            // File.Replace(Path, "./user_settings.config", null);
+            Console.WriteLine("Config restored to saved copy.");
         }
     }
 }
