@@ -7,18 +7,18 @@ namespace UmgakConfig
         public static void Main()
         {
             // Find FatShark folder with user config
-            DiskUtils.FindFolder();
+            DiskUtils.FindConfig();
 
-            DiskUtils.MakeFileNormal(DiskUtils.ConfigPath);
+            // DiskUtils.MakeFileNormal(DiskUtils.ConfigPath);
 
             // Backup user file ("Better to be safe than sorry")
-            DiskUtils.CopyFile(DiskUtils.ConfigPath, "Backups/user_settings.config");
+            //DiskUtils.CopyFile(DiskUtils.ConfigPath, "Backups/user_settings.config");
 
             // Apply settings to config
             ConfigManager.SetOptimizedSettings();
 
             // Prevent settings from being change by launcher
-            DiskUtils.MakeFileReadOnly(DiskUtils.ConfigPath);
+            // DiskUtils.MakeFileReadOnly(DiskUtils.ConfigPath);
         }
     }
 }

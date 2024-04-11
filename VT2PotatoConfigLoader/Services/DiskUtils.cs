@@ -30,7 +30,35 @@
                 Directory.CreateDirectory(BACKUP_DIR);
             }
         }
-        
+
+        public static void FindConfig()
+        {
+            // Specify the target file path
+            string targetFilePath = @"AppData\Roaming\Fatshark\Vermintide 2\user_settings.config";
+
+            // Get the user's profile directory
+            string userProfileDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+
+            // Combine the profile directory with the target file path
+            string fullPath = Path.Combine(userProfileDirectory, targetFilePath);
+
+            // Check if the file exists
+            if (File.Exists(fullPath))
+            {
+                // Set path property.
+                _path = fullPath;
+
+                Console.WriteLine("File found: " + fullPath);
+            }
+            else
+            {
+                Console.WriteLine("File not found: " + fullPath);
+
+                // Ask user to enter config path manually.
+                AskPath();
+            }
+        }
+
         public static void FindFolder()
         {
             string[] file = GetDataFromFile(APP_SETTINGS);
@@ -56,11 +84,11 @@
             else
             {
                 // Create file with path
-                SaveFile();
+                AskPath();
             }
         }
 
-        public static void SaveFile()
+        private static void AskPath()
         {
             Console.Write("Write path to FatShark folder: ");
             string path = Console.ReadLine() ?? "";
@@ -108,7 +136,7 @@
             {
                 Console.WriteLine($"Failed to read file: {path}");
 
-                SaveFile();
+                AskPath();
 
                 return [];
             }
